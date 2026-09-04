@@ -1,0 +1,69 @@
+#Copyright notice: Copyright 1997-2010 Cadence Design Systems, Inc. All rights reserved worldwide.
+
+
+ovf_setup -ungroup_separator { _ }
+
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { ALU_Mux } \
+-instance { ALU_Mux_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { ALU } \
+-instance { ALU_inst } 
+ovf_ungroup \
+-module { Control_Unit } \
+-insmod { ALU_Decoder } \
+-instance { ALU_Decoder } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { Result_Mux } \
+-instance { Result_Mux_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { Register_File } \
+-instance { Register_inst } 
+ovf_ungroup \
+-module { Control_Unit } \
+-insmod { Main_Decoder } \
+-instance { Main_Decoder } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { PC } \
+-instance { PC_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { PC_Target } \
+-instance { PCTarget_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { PC_Plus_4 } \
+-instance { PCPlus4_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { Extend } \
+-instance { Extend_inst } 
+ovf_ungroup \
+-module { Core_Datapath } \
+-insmod { PC_Mux } \
+-instance { PCmux_inst } 
+ovf_ungroup \
+-module { Single_Cycle_Core } \
+-insmod { Control_Unit } \
+-instance { Control } 
+ovf_ungroup \
+-module { Single_Cycle_Core } \
+-insmod { Core_Datapath } \
+-instance { Datapath } 
+ovf_ungroup \
+-module { Single_Cycle_Top } \
+-insmod { Instruction_Memory } \
+-instance { Instr_Memory } 
+ovf_ungroup \
+-module { Single_Cycle_Top } \
+-insmod { Single_Cycle_Core } \
+-instance { core_top } 
+ovf_ungroup \
+-module { Single_Cycle_Top } \
+-insmod { Data_Memory } \
+-instance { Data_Memory } 

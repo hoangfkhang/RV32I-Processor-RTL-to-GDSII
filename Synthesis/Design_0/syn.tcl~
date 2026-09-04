@@ -1,0 +1,114 @@
+#=============================================================================
+# syn.tcl
+# RC Compiler / Genus synthesis script
+# RISC-V Single Cycle Core - GPDK045, with MEM1_256X32 SRAM macros
+#=============================================================================
+
+#-----------------------------------------------------------------------------
+# 0. EDIT THESE PATHS FOR YOUR MACHINE
+#-----------------------------------------------------------------------------
+# NOTE: lef_library is NOT needed at this stage. LEF (.lef) is a physical
+# abstract used by Encounter/EDI for floorplan/P&R, not by RC/Genus for
+# logical synthesis. Add it back only if doing physical-aware synthesis,
+# and only after confirming the real std-cell .lef filename - your lef/
+# screenshot only showed macro .lef files (MEM1_256X32.lef, pdkIO.lef...),
+# no gsclib045.lef was visible there.
+
+set RTL_DIR    "/home/buet/Desktop/RISC_V_SCP/Synthesis"
+set CONS_DIR   "/home/buet/Desktop/RISC_V_SCP/Synthesis/Constraint"
+set LIB_DIR    "/home/buet/cadence/EDI/share/FoundationFlows/EXAMPLES/PROTO/LIBS/GPDK/LIBS/GPDK045/timing"
+set OUT_DIR    "/home/buet/Desktop/RISC_V_SCP/Synthesis/Design_0/Syn_Output"
+set DESIGN     "Single_Cycle_Top"
+
+file mkdir $OUT_DIR
+
+#-----------------------------------------------------------------------------
+# 1. Library setup
+#-----------------------------------------------------------------------------
+set_attribute lef_library { \
+    /home/buet/cadence/EDI/share/FoundationFlows/EXAMPLES/PROTO/LIBS/GPDK/LIBS/GPDK045/gsclib045.lef \
+    /home/buet/cadence/EDI/share/FoundationFlows/EXAMPLES/PROTO/LIBS/GPDK/LIBS/GPDK045/lef/MEM1_256X32.lef \
+}
+set_attribute lib_search_path $LIB_DIR
+
+# Standard cell library - REPLACE with your actual GPDK045 std cell .lib
+# name (e.g. slow.lib / typical.lib as seen in your timing/ folder).
+set_attribute library { \
+    slow.lib \
+    MEM1_256X32_slow.lib \
+} /
+
+# ^ NOTE: file in your screenshot was listed as "slow.lib" (std cells) and
+#   the macro file you sent me was named MEM1_256X32_slow.lib content
+#   under `library(MEM1_256X32) { ... }` - if your actual macro file on
+#   disk has a different filename, fix the second entry above.
+
+#-----------------------------------------------------------------------------
+# 2. Read RTL
+#-----------------------------------------------------------------------------
+set_attribute hdl_search_path $RTL_DIR /
+
+read_hdl -sv { \
+    MEM1_256X32_stub.v \
+    ALU.v \
+    ALU_decoder.v \
+    ALU_Mux.v \
+    Control_Unit.v \
+    Core_Datapath.v \
+    Data_Memory.v \
+    Extend.v \
+    Instruction_Memory.v \
+    Main_Decoder.v \
+    PC.v \
+    PC_Mux.v \
+    PC_Plus_4.v \
+    PC_Target.v \
+    Register_File.v \
+    Result_Mux.v \
+    Single_Cycle_Core.v \
+    Single_Cycle_Top.v \
+}
+
+elaborate $DESIGN
+
+#-----------------------------------------------------------------------------
+# 3. Macro dont_touch already declared at cell level in the .lib itself
+#    (dont_use: TRUE; dont_touch: TRUE; under cell(MEM1_256X32) {...}) -
+#    no extra instance-level attribute needed. If your RC/Genus version
+#    supports it and you want to be extra explicit, the usual syntax is:
+#    set_attribute preserve true [find / -instance */u_imem]
+#    (left commented out - attribute name varies by tool version)
+
+#-----------------------------------------------------------------------------
+# 4. Constraints
+#-----------------------------------------------------------------------------
+read_sdc $CONS_DIR/Single_Cycle_Top.sdc
+
+check_design -unresolved
+
+#-----------------------------------------------------------------------------
+# 5. Synthesis (generic -> mapped). This RC version has no -to_final flag;
+#    -to_mapped with -effort high -incremental is the final synthesis-only
+#    optimization pass (no clock gating / placement requested here).
+#-----------------------------------------------------------------------------
+synthesize -to_generic
+synthesize -to_mapped -effort high -incremental
+
+#-----------------------------------------------------------------------------
+# 6. Reports
+#-----------------------------------------------------------------------------
+report timing              > $OUT_DIR/${DESIGN}_timing.rpt
+report area                > $OUT_DIR/${DESIGN}_area.rpt
+report power                > $OUT_DIR/${DESIGN}_power.rpt
+report gates                > $OUT_DIR/${DESIGN}_gates.rpt
+
+#-----------------------------------------------------------------------------
+# 7. Outputs for the P&R stage (Encounter/EDI)
+#-----------------------------------------------------------------------------
+write_hdl                   > $OUT_DIR/${DESIGN}_netlist.v
+write_sdc                   > $OUT_DIR/${DESIGN}_mapped.sdc
+write_sdf >       $OUT_DIR/${DESIGN}.sdf
+
+write_design -basename $OUT_DIR/${DESIGN}_db
+
+puts "==== Synthesis complete. Check $OUT_DIR/${DESIGN}_timing.rpt for WNS/TNS before P&R. ===="
